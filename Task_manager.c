@@ -4,7 +4,7 @@
 #include <string.h>
 
 typedef struct task{
-	int data; //1: a, 2
+	int data;
 	char priority;
 	char autostart;
 	float *return_addr;
