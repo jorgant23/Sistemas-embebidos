@@ -1,2 +1,2 @@
-# Sistemas-embebidos
-Codigos para la clase de embebidos.
+# Sistemas embebidos
+Códigos para la clase de sistemas embebidos.
