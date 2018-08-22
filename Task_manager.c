@@ -1,5 +1,5 @@
 #include <stdio.h> 
-#include <unistd.h> 
+//#include <unistd.h> 
 #include <stdlib.h>
 #include <string.h>
 
@@ -14,6 +14,12 @@ typedef struct task{
 
 task* tarea_actual; // 0:A, 1:B, 2:C
 
+void activateTask(task* n);
+task* terminateTask();
+task* create(char priority, char autostart, void (*task_begin)(void), char state, task* next);
+task* prepend(char priority, char autostart, void (*task_begin)(void), char state, task* head);
+task* checkAutoStart(task* headT);
+task* insertion_sort(task* head);
 void taskA(void);
 void taskB(void);
 void taskC(void);
@@ -21,6 +27,7 @@ void taskD(void);
 void taskE(void);
 void taskF(void);
 typedef void (*callback)(task* data);
+void execute(task* head, callback f);
 void (*apuntador_tarea_A)(void) = taskA;
 void (*apuntador_tarea_B)(void) = taskB;
 void (*apuntador_tarea_C)(void) = taskC;
@@ -30,15 +37,15 @@ void (*apuntador_tarea_F)(void) = taskF;
 
 void activateTask(task* n)
 {
+	//n->state = 1;
 	n->task_begin();
+	//checkAutoStart(head);
 }
 
 task* terminateTask(){
 	tarea_actual->state= 0;
 	return tarea_actual;
 }
-
-//act
 
 void chainTask(task* n){
 
@@ -66,6 +73,80 @@ task* prepend(char priority, char autostart, void (*task_begin)(void), char stat
     return head;
 }
 
+task* remove_front(task* head)
+{
+    if(head == NULL)
+        return NULL;
+    task* front = head;
+    head = head->next;
+    front->next = NULL;
+    /* is this the last node in the list */
+    if(front == head)
+        head = NULL;
+    free(front);
+    return head;
+}
+
+task* remove_back(task* head)
+{
+    if(head == NULL)
+        return NULL;
+ 
+    task *cursor = head;
+    task *back = NULL;
+    while(cursor->next != NULL)
+    {
+        back = cursor;
+        cursor = cursor->next;
+    }
+    if(back != NULL)
+        back->next = NULL;
+ 
+    /* if this is the last node in the list*/
+    if(cursor == head)
+        head = NULL;
+ 
+    free(cursor);
+ 
+    return head;
+}
+
+task* remove_any(task* head)
+{
+	task* nd = head->next;
+    /* if the node is the first node */
+    if(nd == head)
+    {
+        head = remove_front(head);
+        return head;
+    }
+ 
+    /* if the node is the last node */
+    if(nd->next == NULL)
+    {
+        head = remove_back(head);
+        return head;
+    }
+ 
+    /* if the node is in the middle */
+    task* cursor = head;
+    while(cursor != NULL)
+    {
+        if(cursor->next = nd)
+            break;
+        cursor = cursor->next;
+    }
+ 
+    if(cursor != NULL)
+    {
+        task* tmp = cursor->next;
+        cursor->next = tmp->next;
+        tmp->next = NULL;
+        free(tmp);
+    }
+    return head;
+}
+
 task* checkAutoStart(task* headT){
 	task* cursorT = headT;
     task* headA = NULL;
@@ -77,7 +158,7 @@ task* checkAutoStart(task* headT){
     	}
     	cursorT = cursorT->next;
     }
-
+    headA = insertion_sort(headA);
     return headA;
 }
 
@@ -130,17 +211,6 @@ void execute(task* head, callback f)
     }
 }
 
-/*void execute(task* head, callback f)
-{
-    task* cursor = head;
-    while(cursor != NULL)
-    {
-    	f(cursor);
-    	cursor = cursor->next;
-        
-    }
-}*/
-
 void taskA(void){
 	printf("Soy tarea A \n");
 }
@@ -180,16 +250,17 @@ int main(int argc, char const *argv[])
 	task_B = prepend(3, 1, apuntador_tarea_B, 0, task_A);
 	task_C = prepend(2, 1, apuntador_tarea_C, 0, task_B);
 	task_D = prepend(4, 0, apuntador_tarea_D, 0, task_C);
-	// Nueva prueba
 	task_E = prepend(6, 1, apuntador_tarea_E, 0, task_D);
 	task_F = prepend(5, 1, apuntador_tarea_F, 0, task_E);
 	head = task_F;
-	//apuntador_tarea_A();
-	printf("lista principal \n");
+	printf("Lista principal \n");
 	execute(head, activate_task);
-	printf("lista ordenada \n");
-	execute(insertion_sort(checkAutoStart(head)) , activate_task);
-	//printf("%p\n", task_A->task_begin);
-	//task_A->task_begin();	
+	printf("Lista ordenada \n");
+	execute(checkAutoStart(head) , activate_task);
+	printf("Elemento borrado \n");
+	//remove_front(task_F);
+	//remove_back(task_A);	
+	execute(head, activate_task);
+	printf("%p\n",task_A->next);
 	return 0;
 }
