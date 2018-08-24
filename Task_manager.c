@@ -34,6 +34,7 @@ void (*apuntador_tarea_C)(void) = taskC;
 void (*apuntador_tarea_D)(void) = taskD;
 void (*apuntador_tarea_E)(void) = taskE;
 void (*apuntador_tarea_F)(void) = taskF;
+task* head = NULL;
 
 void activateTask(task* n)
 {
@@ -111,10 +112,10 @@ task* remove_back(task* head)
     return head;
 }
 
-task* remove_any(task* head)
+task* remove_any(task* head, task* nd)
 {
-	task* nd = head->next;
-    /* if the node is the first node */
+	char counter=0;
+	/* if the node is the first node */
     if(nd == head)
     {
         head = remove_front(head);
@@ -132,8 +133,9 @@ task* remove_any(task* head)
     task* cursor = head;
     while(cursor != NULL)
     {
-        if(cursor->next = nd)
-            break;
+    	if(cursor->next == nd){
+        	break;
+        }
         cursor = cursor->next;
     }
  
@@ -147,17 +149,41 @@ task* remove_any(task* head)
     return head;
 }
 
+task* search(task* head,char data)
+{
+ 
+    task *cursor = head;
+    while(cursor!=NULL)
+    {
+        if(cursor->priority == data){
+        	printf("Elemento borrado con prioridad %d\n", cursor->priority);
+            return cursor;
+        }
+        cursor = cursor->next;
+    }
+    return NULL;
+}
+
 task* checkAutoStart(task* headT){
 	task* cursorT = headT;
     task* headA = NULL;
+    task* aux = NULL;
+    char as=0;
     
     while(cursorT != NULL)
     {
     	if(cursorT->autostart == 1){
     		headA = prepend(cursorT->priority, cursorT->autostart, cursorT->task_begin, 1, headA);
+    		aux = cursorT;
+    		as=1;
     	}
     	cursorT = cursorT->next;
+    	if(as){
+    		headT = remove_any(headT, aux);
+    		as=0;
+    	}
     }
+    head = headT;
     headA = insertion_sort(headA);
     return headA;
 }
@@ -211,6 +237,7 @@ void execute(task* head, callback f)
     }
 }
 
+
 void taskA(void){
 	printf("Soy tarea A \n");
 }
@@ -238,8 +265,7 @@ void taskF(void){
 int main(int argc, char const *argv[])
 {
 	callback activate_task = activateTask;
-	
-	task* head = NULL;
+	task* tmp = NULL;
 	task* task_A = NULL;
 	task* task_B = NULL;
 	task* task_C = NULL;
@@ -253,14 +279,9 @@ int main(int argc, char const *argv[])
 	task_E = prepend(6, 1, apuntador_tarea_E, 0, task_D);
 	task_F = prepend(5, 1, apuntador_tarea_F, 0, task_E);
 	head = task_F;
-	printf("Lista principal \n");
+	printf("Lista de autostart \n");
+	execute(checkAutoStart(head), activate_task);
+	printf("Lista principal \n");	
 	execute(head, activate_task);
-	printf("Lista ordenada \n");
-	execute(checkAutoStart(head) , activate_task);
-	printf("Elemento borrado \n");
-	//remove_front(task_F);
-	//remove_back(task_A);	
-	execute(head, activate_task);
-	printf("%p\n",task_A->next);
 	return 0;
 }
