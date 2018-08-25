@@ -12,10 +12,9 @@ typedef struct task{
 	struct task* next; //nodo
 }task;
 
-task* tarea_actual; // 0:A, 1:B, 2:C
 
 void activateTask(task* n);
-task* terminateTask();
+void terminateTask();	
 task* create(char priority, char autostart, void (*task_begin)(void), char state, task* next);
 task* prepend(char priority, char autostart, void (*task_begin)(void), char state, task* head);
 task* checkAutoStart(task* headT);
@@ -27,30 +26,23 @@ void taskD(void);
 void taskE(void);
 void taskF(void);
 typedef void (*callback)(task* data);
-void execute(task* head, callback f);
+//void execute(task* head, callback f);
+void execute(task* head);
 void (*apuntador_tarea_A)(void) = taskA;
 void (*apuntador_tarea_B)(void) = taskB;
 void (*apuntador_tarea_C)(void) = taskC;
-void (*apuntador_tarea_D)(void) = taskD;
-void (*apuntador_tarea_E)(void) = taskE;
-void (*apuntador_tarea_F)(void) = taskF;
-task* head = NULL;
 
-void activateTask(task* n)
-{
-	//n->state = 1;
-	n->task_begin();
-	//checkAutoStart(head);
-}
+/********************************************************************************************************/
+task* head_tasks = NULL;
+task* head_auto = NULL;
+task* taskRunning = NULL;
+callback activate_task = activateTask;
+task* tmp = NULL;
+task* task_A = NULL;
+task* task_B = NULL;
+task* task_C = NULL;
 
-task* terminateTask(){
-	tarea_actual->state= 0;
-	return tarea_actual;
-}
-
-void chainTask(task* n){
-
-}
+/********************************************************************************************************/
 
 task* create(char priority, char autostart, void (*task_begin)(void), char state, task* next){
 	task* new_task = (task*)malloc(sizeof(task));
@@ -71,7 +63,7 @@ task* prepend(char priority, char autostart, void (*task_begin)(void), char stat
 {
     task* new_task = create(priority, autostart, task_begin, state, head);
     head = new_task;	
-    return head;
+    return head;	
 }
 
 task* remove_front(task* head)
@@ -166,14 +158,14 @@ task* search(task* head,char data)
 
 task* checkAutoStart(task* headT){
 	task* cursorT = headT;
-    task* headA = NULL;
+    //task* headA = NULL;
     task* aux = NULL;
     char as=0;
     
     while(cursorT != NULL)
     {
     	if(cursorT->autostart == 1){
-    		headA = prepend(cursorT->priority, cursorT->autostart, cursorT->task_begin, 1, headA);
+    		head_auto = prepend(cursorT->priority, cursorT->autostart, cursorT->task_begin, 1, head_auto);
     		aux = cursorT;
     		as=1;
     	}
@@ -183,9 +175,9 @@ task* checkAutoStart(task* headT){
     		as=0;
     	}
     }
-    head = headT;
-    headA = insertion_sort(headA);
-    return headA;
+    head_tasks = headT;
+    head_auto = insertion_sort(head_auto);
+    return head_auto;
 }
 
 task* insertion_sort(task* head)
@@ -226,62 +218,63 @@ task* insertion_sort(task* head)
     return head;
 }
 
-void execute(task* head, callback f)
+//void execute(task* head, callback f)
+void execute(task* head)
 {
-    tarea_actual = head;
-    while(tarea_actual != NULL)
+	head->task_begin();
+	/*
+    task* cursor = head;
+    while(cursor != NULL)
     {
-    	f(tarea_actual);
-    	tarea_actual = tarea_actual->next;
+    	f(cursor);
+    	cursor = cursor->next;
         
-    }
+    }*/
 }
 
+void activateTask(task* n)
+{
+	n->state = 1;
+	//n->task_begin();
+	execute(n);
+}
+
+void terminateTask(){
+	//prepend(taskRunning->priority,0,taskRunning->task_begin,0,head_tasks);
+}
+
+void chainTask(task* n){
+	//terminateTask();
+	activateTask(n);
+	//execute(n);
+}
 
 void taskA(void){
 	printf("Soy tarea A \n");
+	activate_task(task_B);
+	//head_auto = insertion_sort(head_auto);
 }
 
 void taskB(void){
 	printf("Soy tarea B \n");
+	chainTask(task_C);
 }
 
 void taskC(void){
 	printf("Soy tarea C \n");
-}
-
-void taskD(void){
-	printf("Soy tarea D \n");
-}
-
-void taskE(void){
-	printf("Soy tarea E \n");
-}
-
-void taskF(void){
-	printf("Soy tarea F \n");
+	//terminateTask();
 }
 
 int main(int argc, char const *argv[])
 {
-	callback activate_task = activateTask;
-	task* tmp = NULL;
-	task* task_A = NULL;
-	task* task_B = NULL;
-	task* task_C = NULL;
-	task* task_D = NULL;
-	task* task_E = NULL;
-	task* task_F = NULL;
-	task_A = prepend(1, 0, apuntador_tarea_A, 0, task_A);
-	task_B = prepend(3, 1, apuntador_tarea_B, 0, task_A);
-	task_C = prepend(2, 1, apuntador_tarea_C, 0, task_B);
-	task_D = prepend(4, 0, apuntador_tarea_D, 0, task_C);
-	task_E = prepend(6, 1, apuntador_tarea_E, 0, task_D);
-	task_F = prepend(5, 1, apuntador_tarea_F, 0, task_E);
-	head = task_F;
+	task_A = prepend(1, 1, apuntador_tarea_A, 0, task_A);
+	task_B = prepend(2, 0, apuntador_tarea_B, 0, task_A);
+	task_C = prepend(3, 0, apuntador_tarea_C, 0, task_B);
+	head_tasks = task_C;
+
 	printf("Lista de autostart \n");
-	execute(checkAutoStart(head), activate_task);
-	printf("Lista principal \n");	
-	execute(head, activate_task);
+	execute(checkAutoStart(head_tasks));
+	//printf("Lista principal \n");	
+	//execute(head_tasks, activate_task);
 	return 0;
 }
