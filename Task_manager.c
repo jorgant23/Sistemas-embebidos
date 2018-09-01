@@ -77,9 +77,8 @@ task* create(char priority, char autostart, void (*task_begin)(void), char state
 
 task* prepend(char priority, char autostart, void (*task_begin)(void), char state, task* head)
 {
-    //task* new_task = create(priority, autostart, task_begin, state, head);
-    //head = new_task;	
-    head = create(priority, autostart, task_begin, state, head);
+    task* new_task = create(priority, autostart, task_begin, state, head);
+    head = new_task;	
     return head;	
 }
 
@@ -178,14 +177,22 @@ task* printTask(task* head)
  	//printf("%p\n", cursor);
     while(cursor != NULL)
     {
+        printf("%p\n", cursor);
         cursor = cursor->next;
     }
     return NULL;
 }
 
 
-task* prepend2(task* n, task* next){
+task* prependReady(task* n, task* next){
     n->next= next;
+    n->state = 1; // ready
+    return n;
+}
+
+task* prependWait(task* n, task* next){
+    n->next= next;
+    n->state = 2; // wait
     return n;
 }
 
@@ -197,7 +204,8 @@ task* checkAutoStart(task* headT){
     while(cursorT != NULL)
     {
     	if(cursorT->autostart == 1){
-    		head_ready = prepend2(cursorT, head_ready);
+    		head_ready = prependReady(cursorT, head_ready);
+
     		aux = cursorT;
     		as=1;
     	}
@@ -250,19 +258,22 @@ task* insertion_sort(task* head)
     return head;
 }
 
-//task* prepend(char priority, char autostart, void (*task_begin)(void), char state, task* head)
 void activateTask(task* new)
 {
-	head_ready = prepend(new->priority, 0, new->task_begin, 1, head_ready);
+	//head_ready = prepend(new->priority, 0, new->task_begin, 1, head_ready);  //luuuuuuliiis
+	printTask(head_ready);
+	head_ready = prependReady(new, head_ready);
 	head_iddle = remove_any(head_iddle, new);
 	head_ready = insertion_sort(head_ready);
-	if (taskRunning != NULL)
+	if (taskRunning != 0)
 	{
 		if (new->priority > taskRunning->priority)
 		{
 			taskRunning->return_addr = apuntador_LR; //LR
 			//taskRunning->state = 3;
 			head_wait = prepend(taskRunning->priority, 0, taskRunning->task_begin, 3, head_wait);
+			//printf("activateTask imprime head wait \n");
+			printTask(head_wait);
 			taskRunning = head_ready;
 			taskRunning->state = 2;
 			head_ready = remove_any(head_ready, taskRunning);
@@ -270,6 +281,7 @@ void activateTask(task* new)
 		}
 	}
 	else{
+		//printf("activateTask else \n");
 		taskRunning = head_ready;
 		taskRunning->state = 2;
 		head_ready = remove_any(head_ready, taskRunning);
@@ -284,6 +296,7 @@ void activateTask(task* new)
 /********************************************************************************************************/
 
 void terminateTask(){
+
 	if (head_wait != NULL && head_ready == NULL)
 	{
 		taskRunning = head_wait;
@@ -294,7 +307,8 @@ void terminateTask(){
 	else{
 		taskRunning->return_addr = NULL;
 		head_iddle = prepend(taskRunning->priority, 0, taskRunning->task_begin, 0, head_iddle);
-		taskRunning = NULL;
+		//taskRunning = NULL;  //luuuuliiis
+		taskRunning->state = 0;
 	}
 }
 
@@ -314,11 +328,11 @@ void chainTask(task* n){
 }
 
 void systemInit(void){
-	printf("Tareas de ready %p\n",head_ready);
 	task_A = prepend(1, 1, apuntador_tarea_A, 0, task_A);
 	task_B = prepend(2, 0, apuntador_tarea_B, 0, task_A);
 	task_C = prepend(3, 0, apuntador_tarea_C, 0, task_B);
 	head_iddle = task_C;
+	printTask(head_iddle);
 	run(checkAutoStart(head_iddle));
 }
 
@@ -338,11 +352,13 @@ void taskA(void){
 void taskB(void){
 	printf("Soy tarea B \n");
 	chainTask(task_C);
+	printf("termino B\n");
 }
 
 void taskC(void){
 	printf("Soy tarea C \n");
 	terminateTask();
+	printf("termino C\n");
 }
 
 int main(int argc, char const *argv[])
