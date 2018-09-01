@@ -1,24 +1,23 @@
 #include <stdio.h> 
-//#include <unistd.h> 
 #include <stdlib.h>
+#define __ASM __asm 
+#define __INLINE inline 
+#define __STATIC_INLINE static inline 
 
 typedef struct task{
 	char priority;
 	char autostart;
-	void (*return_addr)(void);
-	//float *return_addr;
+	//void (*return_addr)(void);
+	int *return_addr;
 	void (*task_begin)(void);
 	char state;
 	struct task* next; //nodo
 }task;
 
+/********************************************************************************************************/
 
 void activateTask(task* n);
 void terminateTask();	
-task* create(char priority, char autostart, void (*task_begin)(void), char state, task* next);
-task* prepend(char priority, char autostart, void (*task_begin)(void), char state, task* head);
-task* checkAutoStart(task* headT);
-task* insertion_sort(task* head);
 void taskA(void);
 void taskB(void);
 void taskC(void);
@@ -26,17 +25,17 @@ void taskD(void);
 void taskE(void);
 void taskF(void);
 typedef void (*callback)(task* data);
-//void execute(task* head, callback f);
 void execute(task* head);
 void (*apuntador_tarea_A)(void) = taskA;
 void (*apuntador_tarea_B)(void) = taskB;
 void (*apuntador_tarea_C)(void) = taskC;
 void run(task* n);
 void runWait(void);
-//void return_addr(void);
 void systemInit(void);
+void run_wait(task* n);
 
 /********************************************************************************************************/
+
 task* head_iddle = NULL;
 task* head_ready = NULL;
 task* head_wait = NULL;
@@ -47,20 +46,25 @@ task* task_A = NULL;
 task* task_B = NULL;
 task* task_C = NULL;
 task* cursorT = NULL;
-//head_wait;
-//head_ready;
-//head_ready;
-//head_iddle;
-//head_iddle;
+task* create(char priority, char autostart, void (*task_begin)(void), char state, task* next);
+task* prepend(char priority, char autostart, void (*task_begin)(void), char state, task* head);
+task* checkAutoStart(task* headT);
+task* insertion_sort(task* head);
+int *LR_addres;
 
 /********************************************************************************************************/
+
+__attribute__( ( always_inline ) ) __STATIC_INLINE int* __get_LR(void){ 
+  __ASM volatile ("MOV %0, LR\n" : "=r" (LR_addres) ); 
+ 
+  return(LR_addres); 
+}
 
 task* create(char priority, char autostart, void (*task_begin)(void), char state, task* next){
 	task* new_task = (task*)malloc(sizeof(task));
 	//task* new_task // agregado
     if(new_task == NULL)
     {
-        //printf("Error creating a new task.\n");
         exit(0);
     }
     new_task->priority = priority;
@@ -251,7 +255,7 @@ void activateTask(task* new)
 	{
 		if (head_ready->priority > taskRunning->priority)
 		{
-			//taskRunning->return_addr = apuntador_LR; //LR
+			taskRunning->return_addr = __get_LR(); //LR
 			head_wait = prepend(taskRunning->priority, 0, taskRunning->task_begin, 3, head_wait);
 			taskRunning = head_ready;
 			run(taskRunning);
@@ -315,7 +319,6 @@ void systemInit(void){
 void taskA(void){
 	activateTask(task_B);
 	terminateTask();
-	runwait();
 }
 
 void taskB(void){
