@@ -3,11 +3,13 @@
 #define __ASM __asm 
 #define __INLINE inline 
 #define __STATIC_INLINE static inline 
+#include "derivative.h"
 
 typedef struct task{
 	char priority;
 	char autostart;
-	//void (*return_addr)(void);
+	//void (*return_addr)(int);
+	//void (*return_addr)(int);
 	int *return_addr;
 	void (*task_begin)(void);
 	char state;
@@ -33,7 +35,7 @@ void run(task* n);
 void runWait(void);
 void systemInit(void);
 void run_wait(task* n);
-
+void PORTC_init(void);
 /********************************************************************************************************/
 
 task* head_iddle = NULL;
@@ -53,6 +55,18 @@ task* insertion_sort(task* head);
 int *LR_addres;
 
 /********************************************************************************************************/
+
+void PORTC_init(void){
+	SIM_SCGC5|=SIM_SCGC5_PORTC_MASK;//Sys Clock
+    PORTC_PCR6|=(PORT_PCR_MUX(1)| PORT_PCR_IRQC(0x09) | PORT_PCR_PE_MASK | PORT_PCR_PS_MASK );//GPIO | Rising Edge
+    GPIOC_PDDR=0;
+    NVICICPR1= 1<<(61%32);           
+    NVICISER1= 1<<(61%32);
+}
+
+void PORTC_IRQHandler(void){
+	PORTC_PCR6|=PORT_PCR_ISF_MASK; //CLEAN FLAG
+}
 
 __attribute__( ( always_inline ) ) __STATIC_INLINE int* __get_LR(void){ 
   __ASM volatile ("MOV %0, LR\n" : "=r" (LR_addres) ); 
@@ -270,10 +284,17 @@ void activateTask(task* new)
 }
 
 void terminateTask(){
-	taskRunning->state = 0;
-	//head_iddle = prepend(taskRunning->priority, 0, taskRunning->task_begin, 0, head_iddle);
-	head_iddle = prepend2(taskRunning, head_iddle, 0);
-	taskRunning = NULL;
+	if(taskRunning!=NULL){
+		taskRunning->state = 0;
+		//head_iddle = prepend(taskRunning->priority, 0, taskRunning->task_begin, 0, head_iddle);
+		head_iddle = prepend2(taskRunning, head_iddle, 0);
+		taskRunning = NULL;
+	}else{
+		if(head_wait != NULL){
+			run_wait(head_wait); // transition from wait to run
+			
+		}
+	}
 	/*if (head_wait != NULL && head_ready == NULL)
 	{
 		taskRunning = head_wait;
@@ -297,6 +318,7 @@ void run_wait(task* n){
 	head_wait= remove_any(head_wait,n);
 	taskRunning=n;
 	n->state=2; //running
+	
 	//volver a link register de n
 }
 
@@ -311,8 +333,8 @@ void systemInit(void){
 	task_C = prepend(3, 0, apuntador_tarea_C, 0, task_B);
 	head_iddle = task_C;
 	run(checkAutoStart(head_iddle));
-	while(head_wait!=NULL){
-		run_wait(head_wait);
+	while(taskRunning!=NULL){
+		terminateTask(taskRunning);
 	}
 }
 
@@ -331,6 +353,7 @@ void taskC(void){
 
 int main(int argc, char const *argv[])
 {
+	PORTC_init();
 	systemInit();
 	
 	return 0;
