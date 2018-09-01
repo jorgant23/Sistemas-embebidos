@@ -49,6 +49,7 @@ task* tmp = NULL;
 task* task_A = NULL;
 task* task_B = NULL;
 task* task_C = NULL;
+task* cursorT = NULL;
 //head_wait;
 //head_ready;
 //head_ready;
@@ -59,6 +60,7 @@ task* task_C = NULL;
 
 task* create(char priority, char autostart, void (*task_begin)(void), char state, task* next){
 	task* new_task = (task*)malloc(sizeof(task));
+	//task* new_task // agregado
     if(new_task == NULL)
     {
         printf("Error creating a new task.\n");
@@ -72,10 +74,12 @@ task* create(char priority, char autostart, void (*task_begin)(void), char state
     return new_task;
 }
 
+
 task* prepend(char priority, char autostart, void (*task_begin)(void), char state, task* head)
 {
-    task* new_task = create(priority, autostart, task_begin, state, head);
-    head = new_task;	
+    //task* new_task = create(priority, autostart, task_begin, state, head);
+    //head = new_task;	
+    head = create(priority, autostart, task_begin, state, head);
     return head;	
 }
 
@@ -161,7 +165,6 @@ task* search(task* head,char data)
     while(cursor!=NULL)
     {
         if(cursor->priority == data){
-        	printf("Elemento borrado con prioridad %d\n", cursor->priority);
             return cursor;
         }
         cursor = cursor->next;
@@ -175,22 +178,26 @@ task* printTask(task* head)
  	//printf("%p\n", cursor);
     while(cursor != NULL)
     {
-    	printf("%p\n", cursor);
         cursor = cursor->next;
     }
     return NULL;
 }
 
+
+task* prepend2(task* n, task* next){
+    n->next= next;
+    return n;
+}
+
 task* checkAutoStart(task* headT){
-	task* cursorT = headT;
-    //task* headA = NULL;
+	cursorT = headT;
     task* aux = NULL;
     char as=0;
     
     while(cursorT != NULL)
     {
     	if(cursorT->autostart == 1){
-    		head_ready = prepend(cursorT->priority, cursorT->autostart, cursorT->task_begin, 1, head_ready);
+    		head_ready = prepend2(cursorT, head_ready);
     		aux = cursorT;
     		as=1;
     	}
@@ -266,7 +273,6 @@ void activateTask(task* new)
 		taskRunning = head_ready;
 		taskRunning->state = 2;
 		head_ready = remove_any(head_ready, taskRunning);
-		printf("La tarea actual es %p\n", taskRunning);
 		run(taskRunning);
 	}
 }
@@ -278,10 +284,7 @@ void activateTask(task* new)
 /********************************************************************************************************/
 
 void terminateTask(){
-	taskRunning->return_addr = NULL;
-	head_iddle = prepend(taskRunning->priority, 0, taskRunning->task_begin, 0, head_iddle);
-	taskRunning = NULL;
-	if (head_wait != NULL)
+	if (head_wait != NULL && head_ready == NULL)
 	{
 		taskRunning = head_wait;
 		head_wait= remove_front(head_wait);
@@ -289,6 +292,7 @@ void terminateTask(){
 		runWait();
 	}
 	else{
+		taskRunning->return_addr = NULL;
 		head_iddle = prepend(taskRunning->priority, 0, taskRunning->task_begin, 0, head_iddle);
 		taskRunning = NULL;
 	}
@@ -307,36 +311,20 @@ void runWait(void){
 void chainTask(task* n){
 	terminateTask();
 	activateTask(n);
-	
 }
 
 void systemInit(void){
+	printf("Tareas de ready %p\n",head_ready);
 	task_A = prepend(1, 1, apuntador_tarea_A, 0, task_A);
 	task_B = prepend(2, 0, apuntador_tarea_B, 0, task_A);
 	task_C = prepend(3, 0, apuntador_tarea_C, 0, task_B);
 	head_iddle = task_C;
-	printf("Apuntador A %p\n", task_A);
-	printf("Apuntador B %p\n", task_B);
-	printf("Apuntador C %p\n", task_C);
-	printf("Antes de ejecutar \n");
-	printf("Tareas de iddle \n");
-	printTask(head_iddle);
-	printf("Tareas de ready \n");
-	printTask(head_ready);
-	printf("Tareas de wait \n");
-	printTask(head_wait);
-	//printf("Lista de autostart \n");
 	run(checkAutoStart(head_iddle));
 }
 
 void linkRegister(void){
 	printf("Hola, soy el LR \n");
 	printf("Tareas de iddle \n");
-	printTask(head_iddle);
-	printf("Tareas de ready \n");
-	printTask(head_ready);
-	printf("Tareas de wait \n");
-	printTask(head_wait);
 	//terminateTask();
 }
 
@@ -344,13 +332,7 @@ void taskA(void){
 	printf("Soy tarea A \n");
 	activateTask(task_B);
 	terminateTask();
-	printf("Termine A \n");
-	printf("Tareas de iddle \n");
-	printTask(head_iddle);
-	printf("Tareas de ready \n");
-	printTask(head_ready);
-	printf("Tareas de wait \n");
-	printTask(head_wait);
+	printf("termino A\n");
 }
 
 void taskB(void){
