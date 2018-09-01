@@ -184,9 +184,9 @@ task* printTask(task* head)
 }
 
 
-task* prependReady(task* n, task* next){
+task* prepend2(task* n, task* next, char state){
     n->next= next;
-    n->state = 1; // ready
+    n->state = state; // ready
     return n;
 }
 
@@ -204,7 +204,7 @@ task* checkAutoStart(task* headT){
     while(cursorT != NULL)
     {
     	if(cursorT->autostart == 1){
-    		head_ready = prependReady(cursorT, head_ready);
+    		head_ready = prepend2(cursorT, head_ready, 1);
 
     		aux = cursorT;
     		as=1;
@@ -262,12 +262,12 @@ void activateTask(task* new)
 {
 	//head_ready = prepend(new->priority, 0, new->task_begin, 1, head_ready);  //luuuuuuliiis
 	printTask(head_ready);
-	head_ready = prependReady(new, head_ready);
+	head_ready = prepend2(new, head_ready, 1);
 	head_iddle = remove_any(head_iddle, new);
 	head_ready = insertion_sort(head_ready);
-	if (taskRunning != 0)
+	if (taskRunning != NULL)
 	{
-		if (new->priority > taskRunning->priority)
+		if (head_ready->priority > taskRunning->priority)
 		{
 			taskRunning->return_addr = apuntador_LR; //LR
 			//taskRunning->state = 3;
@@ -275,8 +275,8 @@ void activateTask(task* new)
 			//printf("activateTask imprime head wait \n");
 			printTask(head_wait);
 			taskRunning = head_ready;
-			taskRunning->state = 2;
-			head_ready = remove_any(head_ready, taskRunning);
+			//taskRunning->state = 2;
+			//head_ready = remove_any(head_ready, taskRunning);
 			run(taskRunning);
 		}
 	}
@@ -315,6 +315,9 @@ void terminateTask(){
 
 
 void run(task* n){
+	head_ready = remove_any(head_ready, n);
+	taskRunning=n;
+	n->state=2; //running
 	n->task_begin();
 }
 
